@@ -1,26 +1,64 @@
 /**
  * Se encarga de realizar envio de mensajes desde una lista
  */
- 
-const  pool         = require('./database');         // Manejador de bases de datos mysql
-const { Client }    = require('whatsapp-web.js');    // API whatsap web
-const chalk         = require("chalk");              // Texto coloreado en consola
-const helper        = require('./lib/helper');       // Helper, metodos de ayuda
-const qrcode        = require('qrcode-terminal');    // Mostrar qr en la consola
-const ora           = require('ora');                // Mensaje dimanico para spiner
-const fs            = require('fs');                 // File System
-const SESSION_FILE_PATH = './session.json'
+const express       = require('express');                   // Servidor web
+const path          = require('path');                      // Manejador de paths
+const exphdbs       = require('express-handlebars');        // Plantillas
+const  pool         = require('./database');                // Manejador de bases de datos mysql
+const { Client }    = require('whatsapp-web.js');           // API whatsap web
+const chalk         = require("chalk");                     // Texto coloreado en consola
+const helper        = require('./lib/helper');              // Helper, metodos de ayuda
+const qrcode        = require('qrcode-terminal');           // Mostrar qr en la consola
+const ora           = require('ora');                       // Mensaje dimanico para spiner
+const fs            = require('fs');                        // File System
 
-const client = new Client(); // Cliente de whatsapp web que bamos a usar 
+const SESSION_FILE_PATH = './session.json';                 // json donde guardamos la session
+const EXECUTABLE_PATH   = '/usr/bin/google-chrome-stable';  // Binarios de chrome
+const SLEEP             = 20000;                            // MS for sleep btwn mssg and mssg
+
+// initializations server
+const app = express();
+
+//settings server
+app.set('port', 4000);
+app.set('views', path.join(__dirname, 'views'));
+
+app.engine('.hbs', exphdbs({
+    defaultLayout: 'main',
+    extname: '.hbs',
+}));
+app.set('view engine', '.hbs');
+//Publics
+app.use(express.static(path.join(__dirname, 'public')));
+app.get('/', async (req, res) => {
+    const mssgs = await pool.query('SELECT * FROM io_turno_mensaje WHERE 1=1');
+    console.log(mssgs);
+    res.render('main', {mssgs});
+});
+//Start the server
+app.listen(app.get('port'), () => {
+    console.log('Server escuchando en puerto ', app.get('port'))
+    console.log(chalk.green(`http://localhost:${app.get('port')}`));
+});
 
 if (fs.existsSync(SESSION_FILE_PATH)){
     // Si exsite cargamos el archivo con las credenciales
     const spinner = ora(`Cargando ${chalk.yellow('Validando session con Whatsapp...')}`);
-    sessionData = require(SESSION_FILE_PATH);
+    sessionData   = require(SESSION_FILE_PATH);
     spinner.start();
-    client = new Client({
-        session: sessionData
-    })
+    client = new Client({ puppeteer: {
+            executablePath: EXECUTABLE_PATH,
+            headless: false,
+        }, 
+        session: sessionData 
+    });
+    spinner.stop();
+} else {
+    // No hay sesion creada
+    let client = new Client({ puppeteer: { 
+        executablePath: EXECUTABLE_PATH,
+        headless: false,
+    }});
 }
 
     
@@ -33,28 +71,42 @@ client.on('qr', (qr) => {
 
 
 
-client.on('ready', () => {
+client.on('ready', async () => {
     // Todo el procesamiento que vamos a lanzar cuando el cliente este listo
     console.log(`${chalk.green('Client is ready!')}`);
     console.log(`${chalk.green('Buscamos los mensajes a enviar')}`);
-    let forSend; 
-    pool.query('SELECT * FROM io_turno_mensaje tm WHERE tm.enviado = 0 AND tm.anulado = 0', (err, rows, fields) => {
-        if (!err) {
-        console.log(`${chalk.red(err)}`);
-        } else {
-            // Recorremos el arreglo enviando y guardando el resultado
-            row.forEach(function(element, index) {
-                console.log(element, index);
-                number  = helper.validarNumero(5493454657618);
-                text    = 'hola';
-                message = client.sendMessage(number, text);
-                
-                console.log(`${chalk.green('⚡⚡⚡ Enviando mensajes....')}`);
-            })  
-        }
 
-    });
-    
+    const rows = await pool.query('SELECT * FROM io_turno_mensaje tm WHERE tm.enviado = 0 AND tm.anulado = 0');
+    // Recorremos el arreglo enviando y guardando el resultado
+    // Dato.. No usar foreach con promesas
+    for(let i = 0 ; i < rows.length; i++) {
+        const number  = helper.validarNumero(rows[i].destino);
+        const text    = rows[i].mensaje; 
+
+        console.log(chalk.yellow(`Enviando mensaje a ${number} con el texto ${text}... \n`));
+        const msg = await client.sendMessage(number, text);  
+        console.log(chalk.magenta(`Chat ID:      ${msg._getChatId()}`));   
+        console.log(chalk.magenta(`Message:      ${msg.body}`));
+        console.log(chalk.magenta(`From:         ${msg.from}`));
+        console.log(chalk.magenta(`To:           ${msg.to}`));
+        console.log(chalk.magenta(`ACK:          ${msg.ack}`));
+
+        // if ack = -1 error
+        if (msg.ack >= 0){
+            let date = new Date();
+            const columns = {
+                'enviado': '1',
+                'fecha_enviado': date.toISOString().slice(0, 19).replace('T', ' '),
+                'sender': msg.from.replace('@c.us', ''),
+            }
+            const result = await pool.query("UPDATE io_turno_mensaje SET ? WHERE id = ?", [columns, rows[i].id]);
+        } else {
+            console.log(`${chalk.red('Error al enviar el mensaje, puede que el número no sea válido.')}`);
+        }
+        console.log(chalk.yellow(`Durmiendo por ${SLEEP} Ms...`));
+        await helper.sleep(SLEEP);
+    };  
+    console.log(`${chalk.green('Terminó el envio de mensajes.')}`);
 
 });
 
@@ -81,4 +133,3 @@ client.on('authenticated', (session) => {
 });
 
 client.initialize();
-

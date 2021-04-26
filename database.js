@@ -1,12 +1,14 @@
 
 const mysql = require('mysql');
+const { promisify } = require('util');
+
 
 const database = {
-    host: '127.0.0.1',
-    port: '49153',
-    user: 'db',
-    password: 'db',
-    database: 'db',
+    host: 'localhost',  //For local dev
+    //port: '49153',
+    user: 'admin',
+    password: 'admin',
+    database: 'wppsender',
     multipleStatements: true
 };
 
@@ -21,5 +23,6 @@ pool.connect(function (err) {
   }
 });
 
+pool.query = promisify(pool.query); // Use promises in queries for mysql
 
 module.exports = pool;
