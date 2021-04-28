@@ -7,7 +7,7 @@ const exphdbs       = require('express-handlebars');        // Plantillas
 const  pool         = require('./database');                // Manejador de bases de datos mysql
 const { Client }    = require('whatsapp-web.js');           // API whatsap web
 const chalk         = require("chalk");                     // Texto coloreado en consola
-const helper        = require('./lib/helper');              // Helper, metodos de ayuda
+const helper        = require('../lib/helper');              // Helper, metodos de ayuda
 const qrcode        = require('qrcode-terminal');           // Mostrar qr en la consola
 const ora           = require('ora');                       // Mensaje dimanico para spiner
 const fs            = require('fs');                        // File System
@@ -112,6 +112,7 @@ client.on('auth_failure', () => {
 
 client.on('disconnected', (reason) => {
     // Avisamos que el cliente se desconectó
+    const state = client.resetState();
     console.log(
         `${chalk.red('Client was logged out')}`, 
         `${chalk.blue.bgRed.bold(reason)}`, 
@@ -127,8 +128,40 @@ client.on('authenticated', (session) => {
     });
 });
 
-client.on('message', message => {
-	console.log(message.body);
+client.on('message', async message => {
+    const state = await client.resetState();
+    console.log('Client state: ', state);
+	console.log(message);
+    if (message.type !== 'chat') return;
+    number = message.from;
+    number = number.includes('@c.us') ? number : `${number}@c.us`;
+    let chat = await message.getChat();
+    console.log(chat);
+    chat.sendSeen();
+    // Vemos si el numero esta en nuestra tabla de mensajes 
+    const result = await pool.query('SELECT * FROM io_turno_mensaje mt WHERE mt.destino LIKE ?', [number])
+    if(result.length > 0){
+        // Vemos que responde
+        client.sendMessage(number, 'jeje');
+    } else {
+        //client.sendMessage(number, 'No se nada de vos');
+    }
+
+
+
 });
 
+
+client.on('change_battery', (batteryInfo) => {
+    // Battery percentage for attached device has changed
+    const { battery, plugged } = batteryInfo;
+    console.log(`Battery: ${battery}% - Charging? ${plugged}`);
+});
+
+client.on('change_state', state => {
+    console.log('CHANGE STATE', state );
+});
+
+
 client.initialize();
+
