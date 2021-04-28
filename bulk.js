@@ -15,7 +15,6 @@ const fs            = require('fs');                        // File System
 const SESSION_FILE_PATH = './session.json';                 // json donde guardamos la session
 const EXECUTABLE_PATH   = '/usr/bin/google-chrome-stable';  // Binarios de chrome
 const SLEEP             = 20000;                            // MS for sleep btwn mssg and mssg
-
 // initializations server
 const app = express();
 
@@ -32,7 +31,7 @@ app.set('view engine', '.hbs');
 app.use(express.static(path.join(__dirname, 'public')));
 app.get('/', async (req, res) => {
     const mssgs = await pool.query('SELECT * FROM io_turno_mensaje WHERE 1=1');
-    console.log(mssgs);
+    //console.log(mssgs);
     res.render('main', {mssgs});
 });
 //Start the server
@@ -43,25 +42,18 @@ app.listen(app.get('port'), () => {
 
 if (fs.existsSync(SESSION_FILE_PATH)){
     // Si exsite cargamos el archivo con las credenciales
-    const spinner = ora(`Cargando ${chalk.yellow('Validando session con Whatsapp...')}`);
+    console.log(chalk.yellow('Se encontró una sesión guardada'));
     sessionData   = require(SESSION_FILE_PATH);
-    spinner.start();
-    client = new Client({ puppeteer: {
-            executablePath: EXECUTABLE_PATH,
-            headless: false,
-        }, 
-        session: sessionData 
-    });
-    spinner.stop();
 } else {
-    // No hay sesion creada
-    let client = new Client({ puppeteer: { 
-        executablePath: EXECUTABLE_PATH,
-        headless: false,
-    }});
+    sessionData = null;
 }
 
-    
+let client = new Client({ puppeteer: {
+    executablePath: EXECUTABLE_PATH, // rute to chrome or chromium bin
+    headless: false,
+}, 
+session: sessionData 
+});
 
 client.on('qr', (qr) => {
     // Genera un codigo qr i lo muestra por la consola para que puedas escanearlo con tu celular.
@@ -82,7 +74,10 @@ client.on('ready', async () => {
     for(let i = 0 ; i < rows.length; i++) {
         const number  = helper.validarNumero(rows[i].destino);
         const text    = rows[i].mensaje; 
-
+        if(number === false){
+            console.log(chalk.red(`Número mal Formateado "${rows[i].destino}"`));
+            continue;
+        }
         console.log(chalk.yellow(`Enviando mensaje a ${number} con el texto ${text}... \n`));
         const msg = await client.sendMessage(number, text);  
         console.log(chalk.magenta(`Chat ID:      ${msg._getChatId()}`));   
@@ -100,7 +95,7 @@ client.on('ready', async () => {
                 'sender': msg.from.replace('@c.us', ''),
             }
             const result = await pool.query("UPDATE io_turno_mensaje SET ? WHERE id = ?", [columns, rows[i].id]);
-        } else {
+        } else if (msg.ack == -1){
             console.log(`${chalk.red('Error al enviar el mensaje, puede que el número no sea válido.')}`);
         }
         console.log(chalk.yellow(`Durmiendo por ${SLEEP} Ms...`));
@@ -130,6 +125,10 @@ client.on('authenticated', (session) => {
             console.log(err);
         }
     });
+});
+
+client.on('message', message => {
+	console.log(message.body);
 });
 
 client.initialize();
