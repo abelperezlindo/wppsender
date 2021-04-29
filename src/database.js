@@ -5,7 +5,7 @@ const { promisify } = require('util');
 
 const database = {
     host: '127.0.0.1',  //For local dev
-    port: '49153',
+    port: '49159',
     user: 'db',
     password: 'db',
     database: 'db',
