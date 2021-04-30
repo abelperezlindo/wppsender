@@ -4,6 +4,8 @@ const chalk         = require("chalk");                     // Texto coloreado e
 const qrcode        = require('qrcode-terminal');           // Mostrar qr en la consola
 const pool          = require('./database');
 const helper        = require('../lib/helper');
+const config        = require('../config');
+
 class wrapper {
 
     constructor(){
@@ -73,6 +75,27 @@ class wrapper {
                 `Canbio de estado para la instancia ${info.wid.user}. Nuevo estado ${state}. `
             );
         });
+
+        client.on('message', async message => {
+            const state = await client.resetState();
+            console.log('Client state: ', state);
+            console.log(message);
+            if (message.type !== 'chat') return;
+            number = message.from;
+            number = number.includes('@c.us') ? number : `${number}@c.us`;
+            let chat = await message.getChat();
+            console.log(chat);
+            chat.sendSeen();
+            // Vemos si el numero esta en nuestra tabla de mensajes 
+            const result = await pool.query('SELECT * FROM io_turno_mensaje mt WHERE mt.destino LIKE ?', [number])
+            if(result.length > 0){
+                // Vemos que responde
+                client.sendMessage(number, 'Gracias por la respuesta.');
+            } else {
+                //client.sendMessage(number, 'No se nada de vos');
+            }
+        });
+
         let newPos = (this.clientArr.length) ? this.clientArr.length : 0;
 
         this.clientArr[newPos] = client;
@@ -89,66 +112,99 @@ class wrapper {
     };
 
     /**
-     * Agrega una configuracion
-     * @param {*} config 
-     */
-    addConfig(config){
-
-        if(!config){
-            this.config = {sleep: 20}
-        } else {
-            this.config = {
-                sleep: (config.sleep) ? config.sleep : 20,
-            };
-        }
-
-    };
-    /**
      * Envio de mensajes repartiendo la carga
      */
     async sendMessages(){
         // Get mensajes to send
         console.log(`${chalk.green('Buscamos los mensajes a enviar')}`);
-        //const rows = await pool.query('SELECT * FROM io_turno_mensaje tm WHERE tm.enviado = 0 AND tm.anulado = 0');
-        let rows = [];
-        // Recorremos el arreglo enviando y guardando el resultado
-        for(let i = 0 ; i < rows.length; i++) {
-            const number  = helper.validarNumero(rows[i].destino);
-            const text    = rows[i].mensaje; 
-            if(number === false){
-                console.log(chalk.red(`Número mal Formateado "${rows[i].destino}"`));
-                continue;
-            }
-            console.log(chalk.yellow(`Enviando mensaje a ${number} con el texto ${text}... \n`));
-            if(this.clientArr.length > 0) {
-                const msg = await this.clientArr[0].sendMessage(number, text); 
-            }   
-            console.log(chalk.magenta(`Chat ID:      ${msg._getChatId()}`));   
-            console.log(chalk.magenta(`Message:      ${msg.body}`));
-            console.log(chalk.magenta(`From:         ${msg.from}`));
-            console.log(chalk.magenta(`To:           ${msg.to}`));
-            console.log(chalk.magenta(`ACK:          ${msg.ack}`));
+        const rows = await pool.query('SELECT * FROM io_turno_mensaje tm WHERE tm.enviado = 0 AND tm.anulado = 0');
 
-            // if ack = -1 error
-            if (msg.ack >= 0){
-                let date = new Date();
-                const columns = {
-                    'enviado': '1',
-                    'fecha_enviado': date.toISOString().slice(0, 19).replace('T', ' '),
-                    'sender': msg.from.replace('@c.us', ''),
+        // Cuantas instancias bamos a usar.
+        const clientsLength = this.clientArr.length;
+
+        // Por un lado temnemos un array con mensajes a enviar
+        // Por otro lado un array con instancias de watsapp que pueden enviar los mensajes
+        // Pero para evitar que bloqueen los numeros tenemos que tener un tiempo minimo entre envio
+        // y envio por cada instancia.
+
+        while (rows.length != 0){
+            let notSend = [];
+            // Entramos siempre que tengamos mensajes a enviar 
+            for(const inst = 0 ; i < clientsLength ; i++){
+
+                const message = rows.pop(); // Sacamos un elemento del array de mensajes
+                const number  = helper.validarNumero(message.destino); // Validamos el número
+                // Si el numero no es valido no pdemos enviar el mensaje
+                // Tenemos que usar la instancia en la que estamos para enviar el siguiente mensaje, si este existe
+                while (number === false){
+                    console.log(chalk.red(`Número mal Formateado "${message.destino}"`));
+                    if(rows.length == 0) break; // Rompemos el bucle si no hay mas elementos
+                    const message = rows.pop();
+                    const number  = helper.validarNumero(message.destino);
+                
                 }
-                const result = await pool.query("UPDATE io_turno_mensaje SET ? WHERE id = ?", [columns, rows[i].id]);
-            } else if (msg.ack == -1){
-                console.log(`${chalk.red('Error al enviar el mensaje, puede que el número no sea válido.')}`);
-            }
-            console.log(chalk.yellow(`Durmiendo por ${SLEEP} Ms...`));
-            await helper.sleep(SLEEP);
-        };  
-        console.log(`${chalk.green('Terminó el envio de mensajes.')}`);
+                // Ahora que estamos seguros de que el mensaje puede enviarse lo procesamos
+                console.log(chalk.yellow(`Enviando mensaje a ${number} con el texto ${message.mensaje}... \n`));
 
+                sendResult = await this.clientArr[inst].sendMessage(number, text); 
+                console.log(chalk.magenta(`Chat ID:      ${sendResult._getChatId()}`));   
+                console.log(chalk.magenta(`Message:      ${sendResult.body}`));
+                console.log(chalk.magenta(`From:         ${sendResult.from}`));
+                console.log(chalk.magenta(`To:           ${sendResult.to}`));
+                console.log(chalk.magenta(`ACK:          ${sendResult.ack}`));
+                if(sendResult.ack == -1){
+                    // Si se produjo un error enviando el mensaje puede que el numero no sea valido o no tenga usuario de wpp
+                    // Tambien puede que la instancia se desconecte, o que el número sea bloqueado  
+                    console.log(`${chalk.red('Error al tratar de enviar el mensaje.')}`);
+                    let state = await this.clientArr[inst].getState();
+                    if (state == 'TOS_BLOCK'){
+                        let info = client.info;
+                        console.log(`${chalk.red(`El número ${info.wid.user} fue bloqueado por Wpp y ya no esatará disponible.`)}`);
+                        this.clientArr[inst].logout();
+                        this.clientArr[inst].destroy();
+                        this.clientArr.pop(inst);
+                        rows.push(message);
+                    } else {
+                        await client.resetState();
+                        await sleep(20 * 1000);
+                        let state = await this.clientArr[inst].getState();
+                        // intentamos enviar una ves mas 
+
+                        console.log(chalk.yellow(`Enviando mensaje a ${number} con el texto ${message.mensaje}... \n`));
+
+                        sendResult = await this.clientArr[inst].sendMessage(number, text); 
+                        console.log(chalk.magenta(`Chat ID:      ${sendResult._getChatId()}`));   
+                        console.log(chalk.magenta(`Message:      ${sendResult.body}`));
+                        console.log(chalk.magenta(`From:         ${sendResult.from}`));
+                        console.log(chalk.magenta(`To:           ${sendResult.to}`));
+                        console.log(chalk.magenta(`ACK:          ${sendResult.ack}`));
+                    }
+
+                }
+
+                if (sendResult.ack >= 0){
+                    let date = new Date();
+                    const columns = {
+                        'enviado': '1',
+                        'fecha_enviado': date.toISOString().slice(0, 19).replace('T', ' '),
+                        'sender': sendResult.from.replace('@c.us', ''),
+                    }
+                    const result = await pool.query("UPDATE io_turno_mensaje SET ? WHERE id = ?", [columns, message.id]);
+                } 
+
+                if(rows.length == 0) break;
+                await helper.sleep(2 * 1000);
+            }
+            // Ocupamos todas las instancias
+            // Tenemos que esperar un tiempo antes de seguir
+            await helper.sleep(15 * 60 * 1000); // Min * sec * milisec
+        }
+        console.log(`${chalk.green('Terminó el envio de mensajes.')}`);
+        return;
     };
 
 }
+
 (async () => {
     myW = new wrapper();
     var query = require('cli-interact').getYesNo;
@@ -173,7 +229,7 @@ class wrapper {
 })();
 
 
-console.log('termino oni chan');
+console.log('Termino la ejecucion del mensaje');
 
 //myW.sendMessages();
 
