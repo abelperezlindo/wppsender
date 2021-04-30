@@ -8,5 +8,12 @@ module.export = {
         database: "db",
         multipleStatements: true
     },
-    delay_minutes: 20
+    //tiempo minimo entre mensajes enviados por una misma instancia
+    delay_minutes: 20,
+    questions: {
+ 
+    },
+    answers: {
+
+    }
 }

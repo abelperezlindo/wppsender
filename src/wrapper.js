@@ -5,6 +5,7 @@ const qrcode        = require('qrcode-terminal');           // Mostrar qr en la 
 const pool          = require('./database');
 const helper        = require('../lib/helper');
 const config        = require('../config');
+const { sleep } = require('../lib/helper');
 
 class wrapper {
 
@@ -77,16 +78,21 @@ class wrapper {
         });
 
         client.on('message', async message => {
-            const state = await client.resetState();
-            console.log('Client state: ', state);
-            console.log(message);
+            // Si no es un mensage de un chat no nos importa.
             if (message.type !== 'chat') return;
             number = message.from;
             number = number.includes('@c.us') ? number : `${number}@c.us`;
+
             let chat = await message.getChat();
-            console.log(chat);
-            chat.sendSeen();
-            // Vemos si el numero esta en nuestra tabla de mensajes 
+            let info = await message.getInfo();
+            await chat.sendSeen(); // Vemos el chat
+            await sleep(2 * 1000); // esoeramos 2 segundos antes de empezar a escribir.
+            await chat.sendStateTyping(); // 25 segunsdos
+
+            message.reply('gracias por respondernos');
+
+
+            /* Vemos si el numero esta en nuestra tabla de mensajes 
             const result = await pool.query('SELECT * FROM io_turno_mensaje mt WHERE mt.destino LIKE ?', [number])
             if(result.length > 0){
                 // Vemos que responde
@@ -94,6 +100,7 @@ class wrapper {
             } else {
                 //client.sendMessage(number, 'No se nada de vos');
             }
+            */
         });
 
         let newPos = (this.clientArr.length) ? this.clientArr.length : 0;
@@ -197,7 +204,7 @@ class wrapper {
             }
             // Ocupamos todas las instancias
             // Tenemos que esperar un tiempo antes de seguir
-            await helper.sleep(15 * 60 * 1000); // Min * sec * milisec
+            await helper.sleep(config.delay * 60 * 1000); // Min * sec * milisec
         }
         console.log(`${chalk.green('Terminó el envio de mensajes.')}`);
         return;
