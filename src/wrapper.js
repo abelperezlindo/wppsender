@@ -16,13 +16,7 @@ class wrapper {
      * @param {string|undefined} session 
      */
     add(session = undefined){
-/*
-        var query = require('cli-interact').getYesNo;
-        var answer = query('Quiere agregar una instancia?\n');
-        if(!answer){
-            return
-        }
-*/
+
         this.session = session;
         let client = new Client(
             { 
@@ -80,8 +74,7 @@ class wrapper {
             );
         });
         let newPos = (this.clientArr.length) ? this.clientArr.length : 0;
-        console.log('NewPos: ', newPos);
-        //this.clientsArr.insert(newPos, client);
+
         this.clientArr[newPos] = client;
         this.clientArr[newPos].initialize();
 
@@ -93,19 +86,6 @@ class wrapper {
         for(let i = 0 ; i < clientArr.length ; i++){
             this.clientArr[i].logout(); 
         }
-    };
-    /**
-     * Agrega instancias esperando la respuesta del usuario.
-     */
-    async addMultiple(callback){
-        var query = require('cli-interact').getYesNo;
-        var answer = await query('Quiere agregar una instancia?\n');
-        if(answer){
-            console.log('Agregando nueva ins');
-            await this.add();
-            await callback();
-        } 
-        return;
     };
 
     /**
@@ -167,32 +147,33 @@ class wrapper {
         console.log(`${chalk.green('Terminó el envio de mensajes.')}`);
 
     };
-    /**
-     * Maneja la carga de mensajes para cada instancia de wpp
-     * cada instancia tendrá un maximo para enviar. y un tiempo de inactividad minimo
-     */
-    /*
-    getAvailableClient(){
-        if(this.clientArr.length = 0) return false;
-        now = new Date('now').
-        let olderUsed = { id: 0, timestamp: };
-        for(let i = 0 ; i < this.clientArr.length ; i++){
-
-        }
-    }
-    */
-
-    getAvailableClient(){
-        if(this.clientArr.length = 0) return false;
-        return 1; // el id
-    }
 
 }
-myW = new wrapper();
-await myW.addMultiple(rec = async () => {
-    await myW.addMultiple(rec);
-})
-console.log('termino ani chan');
+(async () => {
+    myW = new wrapper();
+    var query = require('cli-interact').getYesNo;
+    var answer = await query('Quiere agregar una instancia?\n');
+    while(answer){
+        await myW.add();
+        await helper.sleep(30000); // Para dar tiempo decrear inst
+        var answer = await query('Quiere agregar otra instancia?\n');
+    }
+    console.log(myW.clientArr.length);
+    const rows = await pool.query('SELECT * FROM io_turno_mensaje tm WHERE tm.enviado = 0 AND tm.anulado = 0');
+    console.log(`Instancias:        ${myW.clientArr.length}`)
+    console.log(`Emnsages a enviar: ${rows.length}`)
+    const timeOut = myW.config.sleep * 1000;
+    var answer = await query('Proceder a realizar el envio?\n');
+    if(answer){
+        await myW.sendMessages();
+        await myW.close();
+    }else{
+        await myW.close();
+    }
+})();
+
+
+console.log('termino oni chan');
 
 //myW.sendMessages();
 
