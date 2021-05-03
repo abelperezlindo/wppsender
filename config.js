@@ -1,14 +1,12 @@
-module.export = {
+const config = {
     database: {
-        // Coneccion a mysql
         host: 'localhost',
-        port: "",
+        port: "49163",
         user: "db",
         password: "db",
         database: "db",
         multipleStatements: true
     },
-    //tiempo minimo entre mensajes enviados por una misma instancia
     delay_minutes: 20,
     questions: {
  
@@ -17,3 +15,5 @@ module.export = {
 
     }
 }
+
+module.exports = config;

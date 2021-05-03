@@ -1,8 +1,8 @@
 const mysql         = require('mysql');
 const { promisify } = require('util');
-const { database }  = require('../config');
-
-const pool = mysql.createConnection(database);
+const config  = require('../config.js');
+console.log(config);
+const pool = mysql.createConnection(config.database);
 
 pool.connect(function (err) {
   if (err) {

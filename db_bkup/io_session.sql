@@ -1,10 +1,10 @@
 -- phpMyAdmin SQL Dump
--- version 5.0.4
+-- version 5.1.0
 -- https://www.phpmyadmin.net/
 --
--- Servidor: localhost
--- Tiempo de generación: 28-04-2021 a las 22:55:12
--- Versión del servidor: 10.3.27-MariaDB-0+deb10u1
+-- Servidor: db
+-- Tiempo de generación: 03-05-2021 a las 17:04:46
+-- Versión del servidor: 10.2.34-MariaDB-1:10.2.34+maria~bionic-log
 -- Versión de PHP: 7.4.16
 
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
@@ -18,7 +18,7 @@ SET time_zone = "+00:00";
 /*!40101 SET NAMES utf8mb4 */;
 
 --
--- Base de datos: `wppsender`
+-- Base de datos: `db`
 --
 
 -- --------------------------------------------------------
@@ -33,7 +33,9 @@ CREATE TABLE `io_session` (
   `session_data` text COLLATE utf8_bin NOT NULL COMMENT 'SESSION JSON',
   `numero` varchar(13) COLLATE utf8_bin NOT NULL COMMENT 'NÚMERO DE WHATSAPP',
   `descripcion` text COLLATE utf8_bin NOT NULL COMMENT 'DESCRIPCION ',
-  `fecha` datetime NOT NULL DEFAULT current_timestamp() COMMENT 'FECHA ALTA'
+  `fecha` datetime NOT NULL DEFAULT current_timestamp() COMMENT 'FECHA ALTA',
+  `ultimo_uso` timestamp NULL DEFAULT NULL COMMENT 'ULTIMO USO',
+  `enviados` bigint(20) NOT NULL DEFAULT 0 COMMENT 'CANTIDAD DE MENSAJES ENVIADOS\r\n'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
 
 --
