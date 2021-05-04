@@ -1,18 +1,10 @@
 const config = {
     database: {
         host: 'localhost',
-        port: "49163",
-        user: "db",
-        password: "db",
-        database: "db",
+        user: "admin",
+        password: "admin",
+        database: "wppsender",
         multipleStatements: true
-    },
-    delay_minutes: 20,
-    questions: {
- 
-    },
-    answers: {
-
     }
 }
 
