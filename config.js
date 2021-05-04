@@ -1,9 +1,10 @@
 const config = {
     database: {
         host: 'localhost',
-        user: "admin",
-        password: "admin",
-        database: "wppsender",
+        port: '49163',
+        user: "db",
+        password: "db",
+        database: "db",
         multipleStatements: true
     }
 }
