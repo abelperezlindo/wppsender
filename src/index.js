@@ -22,9 +22,16 @@ async function createClient(){
             ],
         }
     });
-    client.on('qr', (qr) => {
+    client.on('qr', async  (qr) => {
         console.log('Escanea el código.');
-        qrcode.generate(qr, { small: true });
+        //qrcode.generate(qr, { small: true });
+        try {
+            
+            data = JSON.stringify({ qr });
+            let result = await pool.query(`UPDATE io_variables v SET v.valor = ? WHERE v.nombre = 'var_last_qr'`, [data]);
+        } catch(err) {
+            console.log(err);
+        }
     });
     client.on('ready', async () => {
         if(outSession){

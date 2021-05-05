@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Servidor: db
--- Tiempo de generación: 03-05-2021 a las 17:04:46
+-- Tiempo de generación: 05-05-2021 a las 15:16:06
 -- Versión del servidor: 10.2.34-MariaDB-1:10.2.34+maria~bionic-log
 -- Versión de PHP: 7.4.16
 
@@ -33,8 +33,8 @@ CREATE TABLE `io_session` (
   `session_data` text COLLATE utf8_bin NOT NULL COMMENT 'SESSION JSON',
   `numero` varchar(13) COLLATE utf8_bin NOT NULL COMMENT 'NÚMERO DE WHATSAPP',
   `descripcion` text COLLATE utf8_bin NOT NULL COMMENT 'DESCRIPCION ',
-  `fecha` datetime NOT NULL DEFAULT current_timestamp() COMMENT 'FECHA ALTA',
-  `ultimo_uso` timestamp NULL DEFAULT NULL COMMENT 'ULTIMO USO',
+  `fecha` datetime DEFAULT current_timestamp() COMMENT 'FECHA ALTA',
+  `ultimo_uso` datetime DEFAULT '1970-01-01 00:00:00' ON UPDATE current_timestamp() COMMENT 'ULTIMO USO',
   `enviados` bigint(20) NOT NULL DEFAULT 0 COMMENT 'CANTIDAD DE MENSAJES ENVIADOS\r\n'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
 
