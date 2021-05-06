@@ -1,15 +1,20 @@
 /**
  * Provee un wraper a whatsap-web.js
  */
+
+ var qrForAuth = false, cronStatus = false; // Variables con alcance global
+
  const express       = require('express');                   // Servidor web
  const path          = require('path');                      // Manejador de paths
- const exphdbs       = require('express-handlebars');        // Plantillas
+ const exphbs       = require('express-handlebars');        // Plantillas
  const  pool         = require('./src/database');            // Manejador de bases de datos mysql
  const chalk         = require("chalk");                     // Texto coloreado en consola
  const helper        = require('./lib/helper');             // Helper, metodos de ayuda
  const fs            = require('fs');                        // File System
  const manager       = require('./src/index');
  const cron          = require('node-cron');
+const { image }      = require('qr-image');
+const bodyParser     = require('body-parser');
 
 const task = cron.schedule('20 * * * * *', () => {
   console.log('Corriendo cron');
@@ -17,60 +22,69 @@ const task = cron.schedule('20 * * * * *', () => {
  {
     scheduled: false
  });
+ //app.use(express.static('public')); // archivos publicos
 
  // initializations server
  const app = express();
  
  //settings server
- app.set('port', 4000);
- app.set('views', path.join(__dirname, 'views'));
+ app.set('port', 4400);
 
- app.engine('.hbs', exphdbs({
-     defaultLayout: 'main',
-     extname: '.hbs',
- }));
- app.set('view engine', '.hbs');
- //Publics
- app.use(express.static(path.join(__dirname, 'public')));
+app.set('views', path.join(__dirname, 'views'));
+app.engine('.hbs', exphbs({
+  defaultLayout: 'main',
+  layoutsDir: path.join(app.get('views'), 'layouts'),
+  //partialsDir: path.join(app.get('views'), 'partials'),
+  extname: '.hbs',
+  //helpers: require('./lib/handlebars')
+}))
+app.set('view engine', '.hbs');
+
+app.use(bodyParser.urlencoded({extended: false}));
+app.use(bodyParser.json());
+app.use(express.static(path.join(__dirname, 'public')));
 
  app.get('/queue', async (req, res) => {
      const rows = await manager.getMessagesInQueue();
-     res.render('main', {rows});
+     res.render('session/messages', {rows});
  });
  app.get('/sessions', async (req, res) => {
     const rowsg = await manager.getSavedSessions();
-    res.render('layouts/sessions', {rowsg});
+    res.render('session/sessions', {rowsg});
 });
-app.get('/sessions/add', async (req, res) => {
-    // Como obtener qr y enviarlo al cliente por express ?
-    console.log('hola');
-    await manager.createClient();
-    let result = await pool.query(`SELECT * FROM io_variables v WHERE v.nombre = 'var_last_qr'`);
-    value = JSON.parse(result[0].valor);
-    res.send(value.qr)
 
+app.get('/sessions/add', async (req, res) => {
+    
+    manager.createClient();
+    await setTimeout(() => {}, 3000);
+    res.redirect('/sessions/qr');
+    
+});
+
+app.get('/sessions/qr', async (req, res) => {
+    // Como obtener qr y enviarlo al cliente por express ?
+   // manager.createClient();
+    res.render('session/qr');
+    
 });
 app.get('/cron/start', async (req, res) => {
-    let start = task.start();
-    console.log(start);
-    try {
-        data = JSON.stringify({ scheduled: true });
-        let result = pool.query(`UPDATE io_variables v SET v.valor = ? WHERE v.nombre = 'var_cron_status'`, [data]);
-    } catch(err) {
-        console.log(err);
+    if (!cronStatus){
+        task.start();
+        res.send('ok iniciando cron ')
+    } else {
+        res.send('Cron ya está iniciado');
+
     }
-    res.send('ok iniciando cron ')
+    
 });
 app.get('/cron/stop', async (req, res) => {
-    let start = task.stop();
-    console.log(start);
-    try {
-        data = JSON.stringify({ scheduled: false });
-        let result = pool.query(`UPDATE io_variables v SET v.valor = ? WHERE v.nombre = 'var_cron_status'`, [data]);
-    } catch(err) {
-        console.log(err);
+    if (cronStatus){
+        task.stop();
+        res.send('ok terminando cron ')
+    } else {
+        res.send('Cron ya está parado');
+
     }
-    res.send('ok parando cron ')
 });
 
  //Start the server

@@ -1,0 +1,55 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+table {
+  font-family: arial, sans-serif;
+  border-collapse: collapse;
+  width: 100%;
+}
+
+td, th {
+  border: 1px solid #dddddd;
+  text-align: left;
+  padding: 8px;
+}
+
+tr:nth-child(even) {
+  background-color: #dddddd;
+}
+</style>
+</head>
+<body>
+
+<h2>Cola de mensajes a enviar</h2>
+
+    <table>
+    <tr>
+        <th>Id</th>
+        <th>Número</th>
+        <th>Mensaje</th>
+        <th>Enviado</th>
+        <th>Fecha enviado</th>
+        <th>Anulado</th>
+        <th>Fecha anulado</th>
+    </tr>
+{{#each rows}}
+    <tr>
+        <td>{{id}}</td>
+        <td>{{destino}}</td>
+        <td>{{mensaje}}</td>
+        <td>{{enviado}}</td>
+        <td>{{fecha_enviado}}</td>
+        <td>{{anulado}}</td>
+        <td>{{fecha_anulado}}</td>
+    </tr>
+{{else}}
+    <tr><td><p>Sin Resultados</p></td></tr>
+{{/each}} 
+</table>
+
+</body>
+</html>
+
+

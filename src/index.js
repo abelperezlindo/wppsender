@@ -5,6 +5,7 @@ const pool          = require('./database');
 
 
 async function createClient(){
+    let qrConunt = 0;
     let outSession = null;
     let client = new Client(
         { puppeteer: {
@@ -23,15 +24,20 @@ async function createClient(){
         }
     });
     client.on('qr', async  (qr) => {
-        console.log('Escanea el código.');
-        //qrcode.generate(qr, { small: true });
-        try {
-            
-            data = JSON.stringify({ qr });
-            let result = await pool.query(`UPDATE io_variables v SET v.valor = ? WHERE v.nombre = 'var_last_qr'`, [data]);
-        } catch(err) {
-            console.log(err);
+        if (qrConunt < 6){
+            console.log('Escanea el código.');
+            var qrImage = require('qr-image');
+    
+            var qr_svg = qrImage.image(qr, { type: 'svg' });
+            qr_svg.pipe(require('fs').createWriteStream('public/qr.svg'));
+
+            qrConunt++;
+        } else {
+            var qr_svg =  '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1 1"><path d="m0,0v1h1V0"/></svg>'
+            qr_svg.pipe(require('fs').createWriteStream('public/qr.svg'));
+            client.destroy()
         }
+
     });
     client.on('ready', async () => {
         if(outSession){

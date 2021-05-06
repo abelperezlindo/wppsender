@@ -1,55 +1,43 @@
-
 <!DOCTYPE html>
-<html>
+<html lang="en">
+
 <head>
-<style>
-table {
-  font-family: arial, sans-serif;
-  border-collapse: collapse;
-  width: 100%;
-}
-
-td, th {
-  border: 1px solid #dddddd;
-  text-align: left;
-  padding: 8px;
-}
-
-tr:nth-child(even) {
-  background-color: #dddddd;
-}
-</style>
+  <meta charset="UTF-8">
+  <title>Notes App</title>
+  {{!-- GOOGLE FONTS --}}
+  <link href="https://fonts.googleapis.com/css?family=Oswald" rel="stylesheet">
+  {{!-- BOOTSTRAP 4 --}}
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css" integrity="sha384-MCw98/SFnGE8fJT3GXwEOngsV7Zt27NXFoaoApmYm81iuXoPkFOJwJ8ERdknLPMO" crossorigin="anonymous">
+  {{!-- FONT AWESOME 5 --}}
+  <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.5.0/css/all.css" integrity="sha384-B4dIYHKNBt8Bc12p+WXckhzcICo0wtJAoU8YZTY5qE0Id1GSseTk6S+L3BlXeVIU"
+    crossorigin="anonymous">
+  {{!-- STYLES --}}
+  <link rel="stylesheet" href="/css/styles.css">
 </head>
+
 <body>
+  {{{ body }}}
 
-<h2>Cola de mensajes a enviar</h2>
+  {{!-- SCRIPTS --}}
+  <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo"
+    crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.3/umd/popper.min.js" integrity="sha384-ZMP7rVo3mIykV+2+9J3UJ46jBk0WLaUAdn689aCwoqbBJiSnjAK/l8WvCWPIPm49"
+    crossorigin="anonymous"></script>
+  <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/js/bootstrap.min.js" integrity="sha384-ChfqqxuZUCnJSK3+MXmPNIyE6ZbWh2IMqE241rYiqJxyMiZ6OW/JmZQ5stwEULTy"
+    crossorigin="anonymous"></script>
+  <script>
 
-    <table>
-    <tr>
-        <th>Id</th>
-        <th>Número</th>
-        <th>Mensaje</th>
-        <th>Enviado</th>
-        <th>Fecha enviado</th>
-        <th>Anulado</th>
-        <th>Fecha anulado</th>
-    </tr>
-{{#each rows}}
-    <tr>
-        <td>{{id}}</td>
-        <td>{{destino}}</td>
-        <td>{{mensaje}}</td>
-        <td>{{enviado}}</td>
-        <td>{{fecha_enviado}}</td>
-        <td>{{anulado}}</td>
-        <td>{{fecha_anulado}}</td>
-    </tr>
-{{else}}
-    <tr><td><p>Sin Resultados</p></td></tr>
-{{/each}} 
-</table>
+    (() => {
+        console.log('entro');
+        setTimeout(function(){
+        let codigo = document.getElementById('qr-wrapper');
+        if(typeof codigo !== undefined){
+            console.log('recarga');
+            window.location.reload(1);
+        }
+    }, 5000);
+    })();
 
+  </script>
 </body>
 </html>
-
-
