@@ -2,22 +2,37 @@
  * Provee un wraper a whatsap-web.js
  */
 
- var qrForAuth = false, cronStatus = false; // Variables con alcance global
+var qrForAuth = false, cronStatus = false; // Variables con alcance global
 
- const express       = require('express');                   // Servidor web
- const path          = require('path');                      // Manejador de paths
- const exphbs       = require('express-handlebars');        // Plantillas
- const  pool         = require('./src/database');            // Manejador de bases de datos mysql
- const chalk         = require("chalk");                     // Texto coloreado en consola
- const helper        = require('./lib/helper');             // Helper, metodos de ayuda
- const fs            = require('fs');                        // File System
- const manager       = require('./src/index');
- const cron          = require('node-cron');
-const { image }      = require('qr-image');
+const express       = require('express');                   // Servidor web
+const path          = require('path');                      // Manejador de paths
+const exphbs        = require('express-handlebars');        // Plantillas
+const  pool         = require('./src/database');            // Manejador de bases de datos mysql
+const chalk         = require("chalk");                     // Texto coloreado en consola
+const helper        = require('./lib/helper');             // Helper, metodos de ayuda
+const fs            = require('fs');                        // File System
+const manager       = require('./src/index');
+const cron          = require('node-cron');
 const bodyParser     = require('body-parser');
 
-const task = cron.schedule('20 * * * * *', () => {
+const task = cron.schedule('20 * * * * *', async () => {
   console.log('Corriendo cron');
+  message = await manager.getNextMessageToSend();
+  if(!message){
+    console.log('No hay mensajes a enviar');
+    return;
+  }
+  session = await manager.getNotUsedInMoreTime()
+  if(!session){
+    console.log('No hay sessiones disponibles');
+    return;
+  }
+  send = await sendMessage(session.number, message.numero, message.text);
+  if(send){
+      console.log(`Mensaje ${message.text} enviado desde ${session.number} a ${message.numero}`);
+  } else {
+    console.log(`Mensaje no enviado`);
+  }
 },
  {
     scheduled: false
@@ -95,8 +110,3 @@ app.get('/', async (req, res) => {
      console.log('Server escuchando en puerto ', app.get('port'))
      console.log(chalk.green(`http://localhost:${app.get('port')}`));
  });
-
-(async () => {
-    message = await manager.getNextMessageToSend();
-    console.log(message)
-})();
