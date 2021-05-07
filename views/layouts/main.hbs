@@ -27,16 +27,16 @@
     crossorigin="anonymous"></script>
   <script>
 
-    (() => {
+   (() => {
         console.log('entro');
         setTimeout(function(){
         let codigo = document.getElementById('qr-wrapper');
-        if(typeof codigo !== undefined){
+        if(codigo){
             console.log('recarga');
             window.location.reload(1);
         }
     }, 5000);
-    })();
+    })(); 
 
   </script>
 </body>

@@ -2,7 +2,7 @@ const { Client }    = require('whatsapp-web.js');           // API whatsap web
 const qrcode        = require('qrcode-terminal');           // Mostrar qr en la consola
 const fs            = require('fs');                        // File System
 const pool          = require('./database');
-
+const qrImage       = require('qr-image');
 
 async function createClient(){
     let qrConunt = 0;
@@ -24,18 +24,18 @@ async function createClient(){
         }
     });
     client.on('qr', async  (qr) => {
+
+        const path = 'public/qr.svg';
         if (qrConunt < 6){
             console.log('Escanea el código.');
-            var qrImage = require('qr-image');
-    
             var qr_svg = qrImage.image(qr, { type: 'svg' });
-            qr_svg.pipe(require('fs').createWriteStream('public/qr.svg'));
-
+            await qr_svg.pipe( fs.createWriteStream(path));
             qrConunt++;
         } else {
-            var qr_svg =  '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1 1"><path d="m0,0v1h1V0"/></svg>'
-            qr_svg.pipe(require('fs').createWriteStream('public/qr.svg'));
-            client.destroy()
+            let svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1 1"><path d="m0,0v1h1V0"/></svg>';
+            fs.writeFile(path, svg, (err) => {  
+                if (err) throw err;
+            });
         }
 
     });
@@ -62,6 +62,11 @@ async function createClient(){
                 } else {
                     console.log(`El cliente para el numero ${row.numero} ya existe, eliminilo primero`);
                 }
+
+                let svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1 1"><path d="m0,0v1h1V0"/></svg>';
+                fs.writeFile('public/qr.svg', svg, (err) => {  
+                    if (err) throw err;
+                });
 
                 client.destroy();
                 console.log('cliente destruido');

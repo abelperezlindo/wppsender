@@ -1,0 +1,20 @@
+<div class="container botones p-4 mt-4">
+    <div class="row mx-auto">
+        <div class="col-md-4 p-3">
+            <a href="/queue" class="btn btn-primary btn-block">Cola de mensajes</a>
+        </div>
+        <div class="col-md-4 p-3">
+            <a href="/sessions" class="btn btn-primary btn-block">Sesiones</a>
+        </div>
+        <div class="col-md-4 p-3">
+            <a href="/sessions/add" class="btn btn-primary btn-block">Agregar Sesione</a>            
+        </div>        
+        <div class="col-md-4 p-3">
+            {{#if cronStatus}}
+                <a href="/cron/stop" class="btn btn-primary btn-block">Parar Cron</a>
+            {{else}}
+                <a href="/cron/start" class="btn btn-primary btn-block">Iniciar Cron</a>
+            {{/if}}
+        </div>   
+    </div>
+</div>

@@ -54,16 +54,17 @@ app.use(express.static(path.join(__dirname, 'public')));
 });
 
 app.get('/sessions/add', async (req, res) => {
-    
-    manager.createClient();
-    await setTimeout(() => {}, 3000);
-    res.redirect('/sessions/qr');
-    
+    if (!qrForAuth) {
+        manager.createClient();
+        await setTimeout(() => {}, 3000);
+        qrForAuth = true;
+        res.redirect('/sessions/qr');
+    }    
 });
 
 app.get('/sessions/qr', async (req, res) => {
-    // Como obtener qr y enviarlo al cliente por express ?
-   // manager.createClient();
+
+    await setTimeout(() => {}, 3000);
     res.render('session/qr');
     
 });
@@ -86,7 +87,9 @@ app.get('/cron/stop', async (req, res) => {
 
     }
 });
-
+app.get('/', async (req, res) => {
+    res.render('front', {cronStatus});
+});
  //Start the server
  app.listen(app.get('port'), () => {
      console.log('Server escuchando en puerto ', app.get('port'))
