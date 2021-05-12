@@ -27,7 +27,9 @@ async function createClient(){
 
         const path = 'public/qr.svg';
         if (qrConunt < 6){
+            // Show qr in shell
             console.log('Escanea el código.');
+            // Serverd qr
             var qr_svg = qrImage.image(qr, { type: 'svg' });
             await qr_svg.pipe( fs.createWriteStream(path));
             qrConunt++;
