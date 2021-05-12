@@ -14,55 +14,76 @@ const fs            = require('fs');                        // File System
 const manager       = require('./src/index');
 const cron          = require('node-cron');
 const bodyParser     = require('body-parser');
+const { response } = require('express');
 
-const task = cron.schedule('20 * * * * *', async () => {
-  console.log('Corriendo cron');
-  message = await manager.getNextMessageToSend();
-  if(!message){
+const task = cron.schedule('5 * * * * *', async () => {
+    //console.clear();
+    console.log('Corriendo cron');
+    var message = await manager.getNextMessageToSend();
+    if(!message){
     console.log('No hay mensajes a enviar');
     return;
-  }
-  session = await manager.getNotUsedInMoreTime()
-  if(!session){
+    }
+    var session = await manager.getNotUsedInMoreTime()
+    if(!session){
     console.log('No hay sessiones disponibles');
     return;
-  }
-  send = await sendMessage(session.number, message.numero, message.text);
-  if(send){
-      console.log(`Mensaje ${message.text} enviado desde ${session.number} a ${message.numero}`);
-  } else {
-    console.log(`Mensaje no enviado`);
-  }
+    }
+    var  session = session.pop();
+    var destino = helper.validarNumero(message.destino);
+
+    if(destino === false){
+        console.log('Error en formato de numero destino, el mensaje no será enviado.');
+        return;
+    }                     
+    var mensaje = message.mensaje;
+    var send = await manager.sendMessage(session.session_data, destino, mensaje);
+    if(!send){ return };
+    await manager.setMessageSend(message.id, session.numero);
+    console.log(`Mensaje ${mensaje} enviado desde ${session.numero} a ${destino}`);  
 },
  {
     scheduled: false
  });
- //app.use(express.static('public')); // archivos publicos
 
- // initializations server
- const app = express();
- 
- //settings server
- app.set('port', 4400);
+const app = express();
+app.set('port', 4400);
 
 app.set('views', path.join(__dirname, 'views'));
 app.engine('.hbs', exphbs({
-  defaultLayout: 'main',
-  layoutsDir: path.join(app.get('views'), 'layouts'),
-  //partialsDir: path.join(app.get('views'), 'partials'),
-  extname: '.hbs',
-  //helpers: require('./lib/handlebars')
-}))
-app.set('view engine', '.hbs');
+    defaultLayout: 'main',
+    layoutsDir: path.join(app.get('views'), 'layouts'),
+    //partialsDir: path.join(app.get('views'), 'partials'),
+    extname: '.hbs',
+    //helpers: require('./lib/handlebars')
+}));
 
+app.set('view engine', '.hbs');
 app.use(bodyParser.urlencoded({extended: false}));
 app.use(bodyParser.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
- app.get('/queue', async (req, res) => {
+ app.get('/messages', async (req, res) => {
      const rows = await manager.getMessagesInQueue();
      res.render('session/messages', {rows});
  });
+ app.post('/messages/add', async (req, res) => {
+ 
+    const {destino, mensaje } = req.body;
+    if(destino === undefined || mensaje === undefined){
+        res.redirect('/messages');
+    }
+    const newMessage = {
+        destino, 
+        mensaje,
+        enviado: '0',
+        anulado: '0',
+        prioridad: '1'
+    };
+    await pool.query("INSERT INTO io_turno_mensaje SET ?", [newMessage]);
+
+    res.redirect('/messages');
+});
  app.get('/sessions', async (req, res) => {
     const rowsg = await manager.getSavedSessions();
     res.render('session/sessions', {rowsg});
@@ -74,7 +95,10 @@ app.get('/sessions/add', async (req, res) => {
         await setTimeout(() => {}, 3000);
         qrForAuth = true;
         res.redirect('/sessions/qr');
-    }    
+    }  else {
+        res.redirect('/sessions/qr');
+    }
+    
 });
 
 app.get('/sessions/qr', async (req, res) => {
@@ -84,25 +108,32 @@ app.get('/sessions/qr', async (req, res) => {
     
 });
 app.get('/cron/start', async (req, res) => {
+    message = '';
     if (!cronStatus){
         task.start();
-        res.send('ok iniciando cron ')
+        message = 'Cron se esta iniciando.'
+        cronStatus = true;
     } else {
-        res.send('Cron ya está iniciado');
-
+        message = 'Cron se esta iniciando.'
     }
-    
+    console.log(message);
+    res.redirect('/',);
+
 });
 app.get('/cron/stop', async (req, res) => {
+    let message = '';
     if (cronStatus){
         task.stop();
-        res.send('ok terminando cron ')
+        message = 'Cron se detendrá.'
+        cronStatus = false;
     } else {
-        res.send('Cron ya está parado');
-
+        message = 'Cron ya se ha detenido.'
     }
+    console.log(message);
+    res.redirect('/',);
 });
 app.get('/', async (req, res) => {
+    const message =  req.app.get('message_user');
     res.render('front', {cronStatus});
 });
  //Start the server

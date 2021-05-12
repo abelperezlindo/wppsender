@@ -25,7 +25,7 @@ tr:nth-child(even) {
     </div>
 </div>
 <div class="container  p-4 mt-4 mb-4">
-  <h2>Cola de mensajes a enviar</h2>
+  <h2>Sesiones disponibles para su uso</h2>
 
   <table class="table" >
     <thead class="thead-dark">
@@ -40,13 +40,13 @@ tr:nth-child(even) {
         </tr>
     </thead>
     <tbody>
-  {{#each rows}}
+  {{#each rowsg}}
       <tr>
           <td>{{id}}</td>
           <td>{{numero}}</td>
           <td>{{activo}}</td>
           <td>{{descripcion}}</td>
-          <td>{{fecha_alta}}</td>
+          <td>{{fecha}}</td>
           <td>{{ultimo_uso}}</td>
           <td>{{enviados}}</td>
       </tr>

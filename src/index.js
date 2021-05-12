@@ -5,7 +5,7 @@ const pool          = require('./database');
 const qrImage       = require('qr-image');
 
 async function createClient(){
-    let qrConunt = 0;
+    var qrConunt = 0;
     let outSession = null;
     let client = new Client(
         { puppeteer: {
@@ -86,44 +86,42 @@ async function createClient(){
 
     client.initialize();    
 };
-async function loadClient(number){
-    try{
-        let result = await pool.query('SELECT * FROM io_session WHERE io_session.numero LIKE ?', [number]);
-        console.log(result[0].session_data);
-        let client = new Client(
-            { puppeteer: {
-                executablePath: '/usr/bin/google-chrome-stable', // rute to chrome or chromium bin
-                headless: true,
-                args: [
-                    "--no-sandbox",
-                    "--disable-setuid-sandbox",
-                    "--disable-dev-shm-usage",
-                    "--disable-accelerated-2d-canvas",
-                    "--no-first-run",
-                    "--no-zygote",
-                    "--process-per-site",
-                    "--disable-gpu"
-                ],
-            }, 
-            session: JSON.parse( result[0].session_data )
-        });
-        client.on('qr', (qr) => {
+async function loadClient(session){
+    console.log('session data : \n', session);
+    if(session === undefined) return false;
+    let client = new Client(
+        { puppeteer: {
+            executablePath: '/usr/bin/google-chrome-stable', // rute to chrome or chromium bin
+            headless: true,
+            args: [
+                "--no-sandbox",
+                "--disable-setuid-sandbox",
+                "--disable-dev-shm-usage",
+                "--disable-accelerated-2d-canvas",
+                "--no-first-run",
+                "--no-zygote",
+                "--process-per-site",
+                "--disable-gpu"
+            ],
+        }, 
+        session: JSON.parse( session )
+    });
+    client.on('qr', (qr) => {
 
-        });
-        client.on('ready', async () => {
-            console.log('cliente listo');    
-        });
-        client.on('authenticated', async (session) => {
-            console.log('Cliente autenticado')
-        });
+    });
+    client.on('ready', async () => {
+        console.log('cliente listo');    
+    });
+    client.on('authenticated', async (session) => {
+        console.log('Cliente autenticado')
+    });
         return client;
-    } catch (err){
-        console.log(err);
-    }
 };
 async function getMessagesInQueue(){
+   
     try{
-        const row = await pool.query('SELECT * FROM io_turno_mensaje tm WHERE tm.enviado = 0 AND tm.anulado = 0 ORDER BY tm.prioridad DESC, tm.fecha_alta ');
+        //const row = await pool.query('SELECT * FROM io_turno_mensaje tm WHERE tm.enviado = 0 AND tm.anulado = 0 ORDER BY tm.prioridad DESC, tm.fecha_alta ');
+        const row = await pool.query(`SELECT id, destino, mensaje, enviado, anulado, DATE_FORMAT(fecha_enviado,'%d/%m/%Y %h:%i hs') AS fecha_enviado, DATE_FORMAT(fecha_anulado,'%d/%m/%Y %h:%i hs') AS fecha_anulado, sender FROM io_turno_mensaje tm WHERE  1=1 ORDER BY tm.prioridad DESC, tm.fecha_alta` );
         if(row[0] === undefined) return;
         return row;
 
@@ -141,21 +139,27 @@ async function getNextMessageToSend(){
         console.log(err);
     }
 };
-async function sendMessage(from, to, text) {
+async function sendMessage(session, to, text) {
 
     try{
-        client = await loadClient(from);
+        client = await loadClient(session);
         if(!client) return;
         await client.initialize();
         message = await client.sendMessage(to, text);
+        if(message.ack < 0){
+            return false; // error al enviar
+        }else{
+            return true;
+        }
         console.log(message);
     }catch(err){
         console.log(err);
     }
 };
 async function getSavedSessions(){
+
     try{
-        let result = await pool.query('SELECT * FROM io_session WHERE io_session.activo = 1');
+        let result = await pool.query(`SELECT id, numero, activo, descripcion, DATE_FORMAT(fecha, '%d/%m/%Y %h:%i hs.') AS fecha, DATE_FORMAT(ultimo_uso,'%d/%m/%Y %h:%i hs.') AS ultimo_uso, enviados  FROM io_session WHERE io_session.activo = 1`);
         return result;
         console.log(result)
     } catch (err){
@@ -173,6 +177,22 @@ async function getNotUsedInMoreTime(){
         return false;
     }
 }
+async function setMessageSend(id, sender){
+    if(id == undefined) return false;
+
+    let now = await new Date()
+    let date = await now.toISOString().slice(0, 19).replace('T', ' ');
+    let rowData = {
+        "enviado": 1,
+        "fecha_enviado": date,
+        "sender": sender,
+    };
+ 
+    let result = await pool.query('UPDATE io_turno_mensaje SET ? WHERE io_turno_mensaje.id = ?;', [rowData, id]);
+    let upSession = await pool.query(`UPDATE io_session SET ultimo_uso = '${date}', enviados = enviados + 1  WHERE numero LIKE '${sender}'`);
+    return true;
+}
+
 
 module.exports = {
     createClient,
@@ -181,5 +201,6 @@ module.exports = {
     sendMessage,
     getSavedSessions,
     getMessagesInQueue,
-    getNotUsedInMoreTime
+    getNotUsedInMoreTime,
+    setMessageSend
 }
