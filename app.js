@@ -15,6 +15,7 @@ const manager = require('./src/index');
 const cron = require('node-cron');
 const body_parser = require('body-parser');
 const { response } = require('express');
+const routes = require('./src/routes');
 
 const task = cron.schedule('5 * * * * *', async () => {
     //console.clear();
@@ -62,80 +63,9 @@ app.set('view engine', '.hbs');
 app.use(body_parser.urlencoded({ extended: false }));
 app.use(body_parser.json());
 app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.json());
+app.use(routes);
 
-app.get('/messages', async (req, res) => {
-    const rows = await manager.getMessagesInQueue();
-    res.render('session/messages', { rows });
-});
-app.post('/messages/add', async (req, res) => {
-
-    const { destino, mensaje } = req.body;
-    if (destino === undefined || mensaje === undefined) {
-        res.redirect('/messages');
-    }
-    const newMessage = {
-        destino,
-        mensaje,
-        enviado: '0',
-        anulado: '0',
-        prioridad: '1'
-    };
-    await pool.query("INSERT INTO io_turno_mensaje SET ?", [newMessage]);
-
-    res.redirect('/messages');
-});
-app.get('/sessions', async (req, res) => {
-    const rowsg = await manager.getSavedSessions();
-    res.render('session/sessions', { rowsg });
-});
-
-app.get('/sessions/add', async (req, res) => {
-    if (!qrForAuth) {
-        manager.createClient();
-        await setTimeout(() => { }, 3000);
-        qrForAuth = true;
-        res.redirect('/sessions/qr');
-    } else {
-        res.redirect('/sessions/qr');
-    }
-
-});
-
-app.get('/sessions/qr', async (req, res) => {
-
-    await setTimeout(() => { }, 3000);
-    res.render('session/qr');
-
-});
-app.get('/cron/start', async (req, res) => {
-    message = '';
-    if (!cronStatus) {
-        task.start();
-        message = 'Cron se esta iniciando.'
-        cronStatus = true;
-    } else {
-        message = 'Cron se esta iniciando.'
-    }
-    console.log(message);
-    res.redirect('/',);
-
-});
-app.get('/cron/stop', async (req, res) => {
-    let message = '';
-    if (cronStatus) {
-        task.stop();
-        message = 'Cron se detendrá.'
-        cronStatus = false;
-    } else {
-        message = 'Cron ya se ha detenido.'
-    }
-    console.log(message);
-    res.redirect('/',);
-});
-app.get('/', async (req, res) => {
-    const message = req.app.get('message_user');
-    res.render('front', { cronStatus });
-});
 //Start the server
 app.listen(app.get('port'), () => {
     console.log('Server escuchando en puerto ', app.get('port'))
