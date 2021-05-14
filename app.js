@@ -1,18 +1,18 @@
 /**
  * @file proveedor del servicio
+ * 
  */
+const config  = require('../config.js');
+// Globals variables
 global.cronStatus = false;  // Contiene el estado de cron.
 global.qr = null;           // Contiene el qr para escanear
 const express   = require('express');                   // Servidor web
-const path      = require('path');                      // Manejador de paths
-const pool      = require('./src/database');            // Manejador de bases de datos mysql
-const fs        = require('fs');                        // File System
 const task      = require('./src/cron');
 const manager   = require('./src/manager');
 const helper    = require('./lib/helper');
 
 const app = express();
-app.set('port', 4400);
+app.set('port', config.port);
 app.use(express.urlencoded({ extended: false }));
 app.use(express.json());
 
