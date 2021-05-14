@@ -5,22 +5,16 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node src/wrapper.js",
-    "bulk": "node bulk.js"
+    "start": "node app.js"
   },
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "body-parser": "^1.19.0",
-    "chalk": "^4.1.1",
-    "cli-interact": "^0.1.9",
     "const": "^1.0.0",
     "express": "^4.17.1",
-    "express-handlebars": "^5.3.1",
     "fs": "0.0.1-security",
     "mysql": "^2.18.1",
     "node-cron": "^3.0.0",
-    "ora": "^5.4.0",
     "path": "^0.12.7",
     "qr-image": "^3.2.0",
     "qrcode-terminal": "^0.12.0",

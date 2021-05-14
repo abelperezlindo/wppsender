@@ -1,3 +1,6 @@
+/**
+ * Provee un wrapper a whatsap-web.js
+ */
 const { Client }    = require('whatsapp-web.js');           // API whatsap web
 const qrcode        = require('qrcode-terminal');           // Mostrar qr en la consola
 const fs            = require('fs');                        // File System
@@ -25,19 +28,11 @@ async function createClient(){
     });
     client.on('qr', async  (qr) => {
 
-        const path = 'public/qr.svg';
         if (qrConunt < 6){
-            // Show qr in shell
-            console.log('Escanea el código.');
-            // Serverd qr
-            var qr_svg = qrImage.image(qr, { type: 'svg' });
-            await qr_svg.pipe( fs.createWriteStream(path));
+            global.qr = qr;
             qrConunt++;
         } else {
-            let svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1 1"><path d="m0,0v1h1V0"/></svg>';
-            fs.writeFile(path, svg, (err) => {  
-                if (err) throw err;
-            });
+            global.qr = null;
         }
 
     });
@@ -65,10 +60,7 @@ async function createClient(){
                     console.log(`El cliente para el numero ${row.numero} ya existe, eliminilo primero`);
                 }
 
-                let svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1 1"><path d="m0,0v1h1V0"/></svg>';
-                fs.writeFile('public/qr.svg', svg, (err) => {  
-                    if (err) throw err;
-                });
+                global.qr = null;
 
                 client.destroy();
                 console.log('cliente destruido');
@@ -117,7 +109,7 @@ async function loadClient(session){
     client.on('authenticated', async (session) => {
         console.log('Cliente autenticado')
     });
-        return client;
+    return client;
 };
 async function getMessagesInQueue(){
    
