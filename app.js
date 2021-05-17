@@ -2,7 +2,7 @@
  * @file proveedor del servicio
  * 
  */
-const config  = require('../config.js');
+const config  = require('./config.js');
 // Globals variables
 global.cronStatus = false;  // Contiene el estado de cron.
 global.qr = null;           // Contiene el qr para escanear
@@ -51,12 +51,14 @@ app.get('/cron/stop', async (req, res) => {
 // Obtener qr para nueva sesion
 app.get('/qr', async (req, res) => {
     console.log('reqest');
+    /**@todo Validad maximo tiempo y pedidos   */
     if(global.qr){
         // servimos el qr existestente
         res.json({
             status: 'isLoad',
             qr: global.qr
         });
+        res.send(global.qr);
         return;
     }
     // Esperamos por un nuevo qr.
